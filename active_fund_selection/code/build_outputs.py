@@ -36,12 +36,6 @@ ids = C.explode('mgr_ids')
 dup = ids.groupby('mgr_ids').code.nunique()
 C['same_mgr_n'] = C.mgr_ids.map(lambda s: max([dup.get(i, 1) for i in s] + [1]) - 1)
 C['label'] = C.name.str.replace('证券投资基金', '', regex=False).str.replace('型', '', regex=False) + ' ' + C.code
-# multi-factor columns from mf_extra.py (run it after this script once, then rerun this script)
-MF = os.path.join(WORK, 'current_mf.pkl')
-if os.path.exists(MF):
-    C = C.merge(pd.read_pickle(MF)[['code', 'mf_t', 'mf_alpha', 'rank_mf_pool', 'rank_t_pool', 'n_tier']], on='code', how='left')
-    for k in ('rank_mf_pool', 'rank_t_pool', 'n_tier'):
-        C[k] = C[k].astype('Int64')
 
 # ---- category index table ----
 rows = []
@@ -84,8 +78,6 @@ nice = {
     'size': '规模(亿)', 'size_1y': '一年前规模(亿)', 'stock_ratio': '近3年平均股票仓位(%)',
     'rank_t': '类内排名(稳定程度)', 'n_cell': '类内基金数', 'same_mgr_n': '同经理其他入池基金数',
     'big': '规模在本类前20%', 'surge': '规模暴增',
-    'mf_t': '多因子选股稳定程度(近3年)', 'mf_alpha': '多因子年化选股超额(近3年)',
-    'rank_t_pool': '同档名次(类别指数稳定程度)', 'rank_mf_pool': '同档名次(多因子)', 'n_tier': '同档基金数',
 }
 metric_cols = []
 for w, wl in (('3y', '近3年'), ('5y', '近5年'), ('ten', '任职以来')):
@@ -97,7 +89,6 @@ for w, wl in (('3y', '近3年'), ('5y', '近5年'), ('ten', '任职以来')):
         metric_cols.append(f'{k}_{w}')
 base_cols = ['code', 'name', 'company', 'mgr', 'ten_start', 'tenure', 'tier', 'cat', 'te', 'size',
              'size_1y', 'stock_ratio', 'rank_t', 'n_cell', 'same_mgr_n', 'big', 'surge']
-base_cols += [c for c in ('rank_t_pool', 'rank_mf_pool', 'n_tier', 'mf_t', 'mf_alpha') if c in long.columns]
 te_cols = [f'te_{c}' for c in CATS]
 for c in CATS:
     nice[f'te_{c}'] = f'跟踪误差_{c}'
@@ -111,7 +102,6 @@ with pd.ExcelWriter(xl) as w:
         '排名窗口：新锐（任职3–5年）看近3年，资深（5年以上）看近5年；“类内排名”按稳定程度。',
         '稳定程度=月度超额均值÷月度超额标准差×√月数；超额=基金年化−类别指数年化。',
         '下跌捕获=类别指数下跌月份中基金平均收益÷指数平均收益；Martin=年化÷溃疡指数。',
-        '多因子：近36个月月度收益对市场、大小盘、价值成长和5个行业因子回归，截距的t值为“多因子选股稳定程度”，截距×12为“多因子年化选股超额”；同档名次为全部类别一起排。',
         '夏普按无风险利率1.5%计；比率与百分比均为小数（0.12即12%）。']})
     readme.to_excel(w, sheet_name='说明', index=False)
     sheet.to_excel(w, sheet_name='全部基金', index=False)
