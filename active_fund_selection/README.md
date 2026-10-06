@@ -9,5 +9,5 @@
   2. `panel.py` 生成月度收益面板；
   3. `run_snapshots.py` 计算当前和2010–2023年每年初的快照（`metrics.py` 为核心口径）；
   4. `analysis.py`、`side_checks.py` 为检验；
-  5. `mf_compare.py`、`mf_extra.py` 与原报告多因子方法对比（基金/经理、类内/同档）；
+  5. `mf_compare.py`、`mf_extra.py` 与原报告多因子方法对比（基金/经理、类内/同档）；`pool_vs_within.py` 把一起排的分数拆成挑基金和类别搭配；`short_pool.py` 检验短名单先按月度胜率筛选是否有用；
   6. `build_outputs.py`、`make_md.py` 生成表格和报告用表（先跑一次 `build_outputs.py`，再跑 `mf_extra.py`，再跑一次 `build_outputs.py` 以并入多因子列）。
