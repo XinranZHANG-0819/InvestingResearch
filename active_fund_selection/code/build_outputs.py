@@ -37,6 +37,13 @@ dup = ids.groupby('mgr_ids').code.nunique()
 C['same_mgr_n'] = C.mgr_ids.map(lambda s: max([dup.get(i, 1) for i in s] + [1]) - 1)
 C['label'] = C.name.str.replace('证券投资基金', '', regex=False).str.replace('型', '', regex=False) + ' ' + C.code
 
+
+
+def note(r):
+    f = [k for k, on in (('持有', r.code in HOLD), ('规模大', r.big), ('暴增', r.surge), ('规模数据旧', r.size_stale)) if on]
+    return '、'.join(f)
+
+
 # ---- category index table ----
 rows = []
 for c in CATS:
@@ -60,6 +67,7 @@ for cell, g in C.groupby('cell'):
         for i, (_, r) in enumerate(pick.iterrows(), 1):
             short.append(dict(cat=cat, tier=tier, crit=crit, rank=i, code=r.code, label=r.label,
                               value=r[col], t=r.t, rank_t=r.rank_t, n_cell=r.n_cell,
+                              size=r['size'], size_1y=np.nan if r.size_stale else r.size_1y, note=note(r),
                               **{k: r[k] for k in ('ret_3y', 'mdd_3y', 'ret_5y', 'mdd_5y', 'ret_ten', 'mdd_ten')}))
 short = pd.DataFrame(short)
 
@@ -102,6 +110,7 @@ with pd.ExcelWriter(xl) as w:
         '排名窗口：新锐（任职3–5年）看近3年，资深（5年以上）看近5年；“类内排名”按稳定程度。',
         '稳定程度=月度超额均值÷月度超额标准差×√月数；超额=基金年化−类别指数年化。',
         '下跌捕获=类别指数下跌月份中基金平均收益÷指数平均收益；Martin=年化÷溃疡指数。',
+        '备注：持有=你持有的基金；规模大=规模在本类前20%；暴增=近1年规模涨到3倍以上且不低于10亿；规模数据旧=最新规模记录早于两年前（一年前规模留空）。',
         '夏普按无风险利率1.5%计；比率与百分比均为小数（0.12即12%）。']})
     readme.to_excel(w, sheet_name='说明', index=False)
     sheet.to_excel(w, sheet_name='全部基金', index=False)
@@ -111,7 +120,8 @@ with pd.ExcelWriter(xl) as w:
             sub.to_excel(w, sheet_name=c, index=False)
     short.rename(columns={'cat': '类别', 'tier': '任职档', 'crit': '准则', 'rank': '名次', 'code': '代码',
                           'label': '基金', 'value': '准则数值', 't': '稳定程度', 'rank_t': '类内排名(稳定程度)',
-                          'n_cell': '类内基金数', 'ret_3y': '近3年年化', 'mdd_3y': '近3年最大回撤',
+                          'n_cell': '类内基金数', 'size': '规模(亿)', 'size_1y': '一年前规模(亿)', 'note': '备注',
+                          'ret_3y': '近3年年化', 'mdd_3y': '近3年最大回撤',
                           'ret_5y': '近5年年化', 'mdd_5y': '近5年最大回撤', 'ret_ten': '任职以来年化',
                           'mdd_ten': '任职以来最大回撤'}).to_excel(w, sheet_name='短名单', index=False)
     idx_tab.to_excel(w, sheet_name='类别指数', index=False)

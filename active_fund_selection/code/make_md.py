@@ -45,14 +45,15 @@ for cat in CATS:
             lines.append(f'| {tier} | {r.rank_t}/{r.n_cell} | {r.nm} | {r.mgr} | {r.size:.0f} | {d2(r.t)} | {pc(r.win)} | {pc(r.ret)} | {pc(r.ex)} | {d2(r.dcap)} | {flags(r)} |')
     open(f'{MD}/long_{cat}.md', 'w').write('\n'.join(lines))
 # short lists: one fund per row, with annualized return and max drawdown for every window
-SH = O['short'].merge(C[['code', 'nm']], on='code')   # short already carries ret/mdd per window
+SH = O['short'].merge(C[['code', 'nm', 'big', 'surge', 'size_stale']], on='code')   # short already carries size and ret/mdd per window
 neg = lambda x: '—' if pd.isna(x) else f'{x*100:.0f}%'.replace('-', '−')
+sz = lambda x: '—' if pd.isna(x) else (f'{x:.1f}' if round(x, 1) < 10 else f'{x:.0f}')
 for cat in CATS:
     g = SH[SH.cat == cat]
     if not len(g):
         continue
-    lines = ['| 档 | 准则 | 基金 | 准则数值 | 近3年年化 | 近3年回撤 | 近5年年化 | 近5年回撤 | 任职年化 | 任职回撤 |',
-             '| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |']
+    lines = ['| 档 | 准则 | 基金 | 规模(亿) | 准则数值 | 近3年年化 | 近3年回撤 | 近5年年化 | 近5年回撤 | 任职年化 | 任职回撤 | 备注 |',
+             '| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |']
     for tier in ['资深', '新锐']:
         gt = g[g.tier == tier]
         first_tier = True
@@ -61,8 +62,8 @@ for cat in CATS:
             ex = gt[gt.crit == '超额'].set_index('code').value
             for i, r in enumerate(gg.itertuples()):
                 val = f'{neg(r.value)}／{neg(ex.get(r.code))}' if crit == '年化收益' else fmt(r.value)
-                lines.append(f"| {tier if first_tier else ''} | {lab if i == 0 else ''} | {r.nm} | {val} | "
-                             f"{neg(r.ret_3y)} | {neg(r.mdd_3y)} | {neg(r.ret_5y)} | {neg(r.mdd_5y)} | {neg(r.ret_ten)} | {neg(r.mdd_ten)} |")
+                lines.append(f"| {tier if first_tier else ''} | {lab if i == 0 else ''} | {r.nm} | {sz(r.size)} | {val} | "
+                             f"{neg(r.ret_3y)} | {neg(r.mdd_3y)} | {neg(r.ret_5y)} | {neg(r.mdd_5y)} | {neg(r.ret_ten)} | {neg(r.mdd_ten)} | {flags(r)} |")
                 first_tier = False
     open(f'{MD}/short_{cat}.md', 'w').write('\n'.join(lines))
 # check 年化 and 超额 picks identical
